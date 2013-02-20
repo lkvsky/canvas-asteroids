@@ -163,10 +163,11 @@ var AG = (function() {
   }
 
   function Bullet(shipPos, dir, ctx) {
+    self = this;
     self.dir = dir;               //Always shooting up for now
     self.x = shipPos['x'];
     self.y = shipPos['y'];
-    self.vel = {x: 0, y:-7};
+    self.vel = {x: 0, y:-3};
 
     self.draw = function(){
       ctx.fillStyle = '#CCC';
@@ -181,6 +182,14 @@ var AG = (function() {
 
       self.x += self.vel['x'];
       self.y += self.vel['y'];
+    };
+
+    self.offScreenY = function(maxY) {
+      if (self.y > maxY){
+        self.y = 0;
+      } else if (self.y < 0){
+        self.y = maxY;
+      }
     };
   }
 
