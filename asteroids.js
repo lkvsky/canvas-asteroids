@@ -5,6 +5,7 @@ var AG = (function() {
     self.x = pos['x'];
     self.y = pos['y'];
     self.rad = 20;
+    self.fill = fill;
 
     self.vel = function() {
       var randX = Math.random() * 10 + -5;
@@ -14,7 +15,7 @@ var AG = (function() {
     }();
 
     self.draw = function() {
-      ctx.fillStyle = fill;
+      ctx.fillStyle = self.fill;
 
       ctx.beginPath();
       ctx.arc(self.x, self.y, self.rad, 0, 2 * Math.PI, true)
@@ -56,41 +57,6 @@ var AG = (function() {
     return new Asteroid(pos, ctx, "#000");
   }
 
-  function Game(ctx, canvasWidth, canvasHeight){
-    var self = this;
-    self.asteroids = [];
-    self.maxX = canvasWidth;
-    self.maxY = canvasHeight;
-    self.ship = new Ship({x: (self.maxX / 2), y: (self.maxY / 2)}, ctx);
-
-    self.initialize = function() {
-      self.getAsteroids();
-      self.start();
-    };
-
-    self.start = function() {
-      setInterval(self.draw, 1000/24);
-    };
-
-    self.draw = function(){
-      ctx.clearRect(0, 0, 900, 600);
-      self.ship.draw();
-
-      for (var i=0; i<self.asteroids.length; i++) {
-        var a = self.asteroids[i];
-        a.update(self.maxX, self.maxY);
-        a.draw();
-      }
-    };
-
-    self.getAsteroids = function() {
-      for (var i=0; i<10; i++) {
-        var a = Asteroid.randomAsteroid(self.maxX, self.maxY)
-        self.asteroids.push(a);
-      }
-    };
-  }
-
   function Ship(pos, ctx) {
     var self = this;
 
@@ -100,19 +66,98 @@ var AG = (function() {
     self.draw = function() {
       ctx.fillStyle = "#FF0000";
 
+      // Create ship
       ctx.beginPath();
       ctx.moveTo(self.x, self.y);
       ctx.lineTo(self.x+12, self.y+30);
       ctx.lineTo(self.x-12, self.y+30);
       ctx.lineTo(self.x, self.y);
-
       ctx.fill();
+
+      // Create forcefield
+      ctx.beginPath();
+      ctx.arc(self.x, self.y+17, 20, 0, 2 * Math.PI, true)
+      ctx.strokeStyle = '#5ac3b6'
+      ctx.stroke();
+    };
+
+    self.isHit = function(asteroids) {
+      for(var i = 0; i < asteroids.length; i++){
+        var astr = asteroids[i];
+        var astrX = astr.x;
+        var astrY = astr.y;
+
+        var deltX = Math.pow(astrX - self.x, 2);
+
+        // Center of forcefield circle is at (self.x, self.y+17)
+        var deltY = Math.pow(astrY - (self.y + 17), 2);
+
+        d = Math.sqrt(deltX + deltY);
+        if (d < (astr.rad + 20)) {
+          return true;
+        }
+      }
+    };
+  }
+
+  function Game(ctx, canvasWidth, canvasHeight){
+    var self = this;
+
+    self.asteroids = [];
+    self.maxX = canvasWidth;
+    self.maxY = canvasHeight;
+    self.ship = new Ship(
+      {x: (self.maxX / 2), y: (self.maxY / 2)},
+      ctx,
+      self.asteroids);
+
+    self.initialize = function() {
+      self.getAsteroids();
+      self.start();
+    };
+
+    self.start = function() {
+      self.gameInt = setInterval(self.step, 1000/24);
+    };
+
+    self.step = function() {
+      self.update();
+      self.draw();
+      if (self.ship.isHit(self.asteroids)) {
+        alert("YOU GOT HIT!");
+        clearInterval(self.gameInt);
+      }
+    }
+
+    self.draw = function(){
+      ctx.clearRect(0, 0, 900, 600);
+      self.ship.draw();
+
+      for (var i=0; i<self.asteroids.length; i++) {
+        var a = self.asteroids[i];
+        a.draw();
+      }
+    };
+
+    self.update = function() {
+      for (var i=0; i<self.asteroids.length; i++) {
+        var a = self.asteroids[i];
+        a.update(self.maxX, self.maxY);
+      }
+    }
+
+    self.getAsteroids = function() {
+      for (var i=0; i<10; i++) {
+        var a = Asteroid.randomAsteroid(self.maxX, self.maxY)
+        self.asteroids.push(a);
+      }
     };
   }
 
   return {
     Asteroid: Asteroid,
     Game: Game,
+    Ship: Ship
   }
 })();
 
