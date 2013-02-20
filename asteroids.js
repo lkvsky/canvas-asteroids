@@ -49,7 +49,7 @@ var AG = (function() {
 
   // Asteroid Class Methods
 
-  Asteroid.randomAsteroid = function(maxX, maxY) {
+  Asteroid.randomAsteroid = function(maxX, maxY, ctx) {
     var randX = Math.floor(Math.random() * maxX);
     var randY = Math.floor(Math.random() * maxY);
     var pos = {x: randX, y: randY};
@@ -62,6 +62,14 @@ var AG = (function() {
 
     self.x = pos['x'];
     self.y = pos['y'];
+    self.vel = {x: 0, y: 0};
+    self.directions = {
+      up: [0, -1],
+      down: [0, 1],
+      left: [-1, 0],
+      right: [1, 0]
+    };
+    self.firedBullets = [];
 
     self.draw = function() {
       ctx.fillStyle = "#FF0000";
@@ -98,6 +106,82 @@ var AG = (function() {
         }
       }
     };
+
+    self.update = function(maxX, maxY) {
+      self.offScreenX(maxX);
+      self.offScreenY(maxY);
+
+      self.x += self.vel['x'];
+      self.y += self.vel['y'];
+    };
+
+    self.power = function(dir) {
+      self.vel['x'] += dir[0];
+      self.vel['y'] += dir[1];
+    };
+
+    self.fireBullet = function(pos, dir, ctx){
+      var bullet = new Bullet(pos, dir, ctx);
+      console.log(bullet);
+      self.firedBullets.push(bullet);
+      console.log(self.firedBullets);
+    }
+
+    self.keyBindings = function() {
+      key('up', function() {
+        self.power(self.directions['up']);
+      });
+      key('down', function() {
+        self.power(self.directions['down']);
+      });
+      key('left', function() {
+        self.power(self.directions['left']);
+      });
+      key('right', function() {
+        self.power(self.directions['right']);
+      });
+      key('space', function(){
+        self.fireBullet({x: self.x, y: self.y}, self.directions['up'], ctx);
+      });
+    };
+
+    self.offScreenX = function(maxX) {
+      if (self.x > maxX){
+        self.x = 0;
+      } else if (self.x < 0){
+        self.x = maxX;
+      }
+    };
+
+    self.offScreenY = function(maxY) {
+      if (self.y > maxY){
+        self.y = 0;
+      } else if (self.y < 0){
+        self.y = maxY;
+      }
+    };
+  }
+
+  function Bullet(shipPos, dir, ctx) {
+    self.dir = dir;               //Always shooting up for now
+    self.x = shipPos['x'];
+    self.y = shipPos['y'];
+    self.vel = {x: 0, y:-7};
+
+    self.draw = function(){
+      ctx.fillStyle = '#CCC';
+
+      ctx.beginPath();
+      ctx.arc(self.x, self.y, 3, 0, 2 * Math.PI, true)
+      ctx.fill();
+    };
+
+    self.update = function(){
+      // Here we would multiply by dir if we had one
+
+      self.x += self.vel['x'];
+      self.y += self.vel['y'];
+    };
   }
 
   function Game(ctx, canvasWidth, canvasHeight){
@@ -111,18 +195,16 @@ var AG = (function() {
       ctx,
       self.asteroids);
 
-    self.initialize = function() {
-      self.getAsteroids();
-      self.start();
-    };
-
     self.start = function() {
+      self.getAsteroids();
+      self.ship.keyBindings();
       self.gameInt = setInterval(self.step, 1000/24);
     };
 
     self.step = function() {
       self.update();
       self.draw();
+
       if (self.ship.isHit(self.asteroids)) {
         alert("YOU GOT HIT!");
         clearInterval(self.gameInt);
@@ -137,6 +219,11 @@ var AG = (function() {
         var a = self.asteroids[i];
         a.draw();
       }
+
+      for (var j=0; j<self.ship.firedBullets.length; j++) {
+        var b = self.ship.firedBullets[j];
+        b.draw();
+      }
     };
 
     self.update = function() {
@@ -144,11 +231,19 @@ var AG = (function() {
         var a = self.asteroids[i];
         a.update(self.maxX, self.maxY);
       }
+
+      self.ship.update(self.maxX, self.maxY);
+
+      for (var j=0; j<self.ship.firedBullets.length; j++) {
+        var b = self.ship.firedBullets[j];
+        console.log(self, b);
+        b.update();
+      }
     }
 
     self.getAsteroids = function() {
       for (var i=0; i<10; i++) {
-        var a = Asteroid.randomAsteroid(self.maxX, self.maxY)
+        var a = Asteroid.randomAsteroid(self.maxX, self.maxY, ctx)
         self.asteroids.push(a);
       }
     };
@@ -162,30 +257,12 @@ var AG = (function() {
 })();
 
 
-var canvas = $("canvas")[0]
-canvas.width = 900;
-canvas.height = 600;
-var ctx = canvas.getContext("2d");
+(function() {
+  var canvas = $("canvas")[0]
+  canvas.width = 900;
+  canvas.height = 600;
+  var ctx = canvas.getContext("2d");
 
-var a = new AG.Asteroid({x:100, y:100}, ctx, "#FCDC3B");
-a.draw();
-
-
-var g = new AG.Game(ctx, 900, 600);
-g.initialize();
-
-
-
-/*
-var mercury = new AG.Asteroid(350, 250, ctx, 15, "#867970");
-mercury.draw(mercury.X, mercury.Y);
-
-var venus = new AG.Asteroid(400, 400, ctx, 35, "#238E68");
-venus.draw(venus.X, venus.Y);
-
-var earth = new AG.Asteroid(650, 350, ctx, 55, "#38B0DE");
-earth.draw(earth.X, earth.Y);
-
-var mars = new AG.Asteroid(850, 450, ctx, 25, "#FF2400")
-mars.draw(mars.X, mars.Y);
-*/
+  var g = new AG.Game(ctx, 900, 600);
+  g.start();
+})();
