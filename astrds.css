@@ -1,12 +1,9 @@
 body {
-  width: 90%;
-  margin-left: 5%;
-  margin-right: 5%;
 }
 
 canvas {
   border: 2px solid #CCC;
-  float: left;
+  display: block;
   margin-right:auto;
   margin-left: auto;
 }

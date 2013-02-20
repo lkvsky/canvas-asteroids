@@ -1,11 +1,17 @@
 var AG = (function() {
-  function Asteroid(pos, ctx, fill, vel) {
+  function Asteroid(pos, ctx, fill) {
     var self = this;
 
     self.x = pos['x'];
     self.y = pos['y'];
     self.rad = 20;
-    self.vel = vel;
+
+    self.vel = function() {
+      var randX = Math.random() * 10 + -5;
+      var randY = Math.random() * 10 + -5;
+
+      return {x: randX, y:randY}
+    }();
 
     self.draw = function() {
       ctx.fillStyle = fill;
@@ -13,18 +19,49 @@ var AG = (function() {
       ctx.beginPath();
       ctx.arc(self.x, self.y, self.rad, 0, 2 * Math.PI, true)
       ctx.fill();
-    }
+    };
 
-    self.update = function() {
+    self.update = function(maxX, maxY) {
+      self.offScreenX(maxX);
+      self.offScreenY(maxY);
+
       self.x += self.vel['x'];
       self.y += self.vel['y'];
-    }
+    };
+
+    self.offScreenX = function(maxX) {
+      if (self.x > maxX){
+        self.x = 0;
+      } else if (self.x < 0){
+        self.x = maxX;
+      }
+    };
+
+    self.offScreenY = function(maxY) {
+      if (self.y > maxY){
+        self.y = 0;
+      } else if (self.y < 0){
+        self.y = maxY;
+      }
+    };
   }
 
-  function Game(ctx, canvasMin, canvasMax){
-    var self = this;
+  // Asteroid Class Methods
 
+  Asteroid.randomAsteroid = function(maxX, maxY) {
+    var randX = Math.floor(Math.random() * maxX);
+    var randY = Math.floor(Math.random() * maxY);
+    var pos = {x: randX, y: randY};
+
+    return new Asteroid(pos, ctx, "#000");
+  }
+
+  function Game(ctx, canvasWidth, canvasHeight){
+    var self = this;
     self.asteroids = [];
+    self.maxX = canvasWidth;
+    self.maxY = canvasHeight;
+    self.ship = new Ship({x: (self.maxX / 2), y: (self.maxY / 2)}, ctx);
 
     self.initialize = function() {
       self.getAsteroids();
@@ -32,39 +69,45 @@ var AG = (function() {
     };
 
     self.start = function() {
-      setInterval(self.gameloop, 1000/24);
+      setInterval(self.draw, 1000/24);
     };
 
-    self.gameloop = function(){
+    self.draw = function(){
       ctx.clearRect(0, 0, 900, 600);
+      self.ship.draw();
+
       for (var i=0; i<self.asteroids.length; i++) {
         var a = self.asteroids[i];
-        a.update();
+        a.update(self.maxX, self.maxY);
         a.draw();
       }
     };
 
     self.getAsteroids = function() {
-      for (var i=0; i<1000; i++) {
-        self.asteroids.push(self.randomAsteroid());
+      for (var i=0; i<10; i++) {
+        var a = Asteroid.randomAsteroid(self.maxX, self.maxY)
+        self.asteroids.push(a);
       }
     };
+  }
 
-    self.randomAsteroid = function() {
-      var randX = Math.floor(Math.random() * canvasMax) + canvasMin;
-      var randY = Math.floor(Math.random() * canvasMax) + canvasMin;
-      var pos = {x: randX, y: randY};
-      var vel = self.randomVelocity();
+  function Ship(pos, ctx) {
+    var self = this;
 
-      return new Asteroid(pos, ctx, "#000", vel);
+    self.x = pos['x'];
+    self.y = pos['y'];
+
+    self.draw = function() {
+      ctx.fillStyle = "#FF0000";
+
+      ctx.beginPath();
+      ctx.moveTo(self.x, self.y);
+      ctx.lineTo(self.x+12, self.y+30);
+      ctx.lineTo(self.x-12, self.y+30);
+      ctx.lineTo(self.x, self.y);
+
+      ctx.fill();
     };
-
-    self.randomVelocity = function() {
-      var randX = Math.random() * 10 + -5;
-      var randY = Math.random() * 10 + -5;
-
-      return {x: randX, y:randY}
-    }
   }
 
   return {
@@ -83,7 +126,7 @@ var a = new AG.Asteroid({x:100, y:100}, ctx, "#FCDC3B");
 a.draw();
 
 
-var g = new AG.Game(ctx, 0, 2000);
+var g = new AG.Game(ctx, 900, 600);
 g.initialize();
 
 
