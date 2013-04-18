@@ -11,14 +11,14 @@ var AG = (function() {
       var randX = Math.random() * 10 + -5;
       var randY = Math.random() * 10 + -5;
 
-      return {x: randX, y:randY}
+      return {x: randX, y:randY};
     }();
 
     self.draw = function() {
       ctx.fillStyle = self.fill;
 
       ctx.beginPath();
-      ctx.arc(self.x, self.y, self.rad, 0, 2 * Math.PI, true)
+      ctx.arc(self.x, self.y, self.rad, 0, 2 * Math.PI, true);
       ctx.fill();
     };
 
@@ -45,6 +45,24 @@ var AG = (function() {
         self.y = maxY;
       }
     };
+
+    self.isHit = function(bullets) {
+      for(var i = 0; i < bullets.length; i++){
+        var bllt = bullets[i];
+        var blltX = bllt.x;
+        var blltY = bllt.y;
+
+        var deltX = Math.pow(blltX - self.x, 2);
+
+        // Center of forcefield circle is at (self.x, self.y+17)
+        var deltY = Math.pow(blltY - (self.y + 17), 2);
+
+        d = Math.sqrt(deltX + deltY);
+        if (d < (23)) {
+          return true;
+        }
+      }
+    };
   }
 
   // Asteroid Class Methods
@@ -54,8 +72,8 @@ var AG = (function() {
     var randY = Math.floor(Math.random() * maxY);
     var pos = {x: randX, y: randY};
 
-    return new Asteroid(pos, ctx, "#000");
-  }
+    return new Asteroid(pos, ctx, "#FFF");
+  };
 
   function Ship(pos, ctx) {
     var self = this;
@@ -84,8 +102,8 @@ var AG = (function() {
 
       // Create forcefield
       ctx.beginPath();
-      ctx.arc(self.x, self.y+17, 20, 0, 2 * Math.PI, true)
-      ctx.strokeStyle = '#5ac3b6'
+      ctx.arc(self.x, self.y+17, 20, 0, 2 * Math.PI, true);
+      ctx.strokeStyle = '#5ac3b6';
       ctx.stroke();
     };
 
@@ -122,10 +140,8 @@ var AG = (function() {
 
     self.fireBullet = function(pos, dir, ctx){
       var bullet = new Bullet(pos, dir, ctx);
-      console.log(bullet);
       self.firedBullets.push(bullet);
-      console.log(self.firedBullets);
-    }
+    };
 
     self.keyBindings = function() {
       key('up', function() {
@@ -173,7 +189,7 @@ var AG = (function() {
       ctx.fillStyle = '#CCC';
 
       ctx.beginPath();
-      ctx.arc(self.x, self.y, 3, 0, 2 * Math.PI, true)
+      ctx.arc(self.x, self.y, 3, 0, 2 * Math.PI, true);
       ctx.fill();
     };
 
@@ -186,9 +202,9 @@ var AG = (function() {
 
     self.offScreenY = function(maxY) {
       if (self.y > maxY){
-        self.y = 0;
+        return true;
       } else if (self.y < 0){
-        self.y = maxY;
+       return true;
       }
     };
   }
@@ -203,6 +219,7 @@ var AG = (function() {
       {x: (self.maxX / 2), y: (self.maxY / 2)},
       ctx,
       self.asteroids);
+    self.imgCoords = {x: -1, y: -1};
 
     self.start = function() {
       self.getAsteroids();
@@ -218,10 +235,17 @@ var AG = (function() {
         alert("YOU GOT HIT!");
         clearInterval(self.gameInt);
       }
-    }
+    };
+
+    self.won = function() {
+      if (self.asteroids.length === 0) {
+        return true;
+      }
+    };
 
     self.draw = function(){
       ctx.clearRect(0, 0, 900, 600);
+      self.drawBackground();
       self.ship.draw();
 
       for (var i=0; i<self.asteroids.length; i++) {
@@ -236,24 +260,47 @@ var AG = (function() {
     };
 
     self.update = function() {
+      for (var j=0; j<self.ship.firedBullets.length; j++) {
+        var b = self.ship.firedBullets[j];
+
+        if (b.offScreenY(self.maxY)) {
+          self.ship.firedBullets.splice(1, j);
+        } else {
+          b.update();
+        }
+      }
+
       for (var i=0; i<self.asteroids.length; i++) {
-        var a = self.asteroids[i];
-        a.update(self.maxX, self.maxY);
+        if (self.asteroids[i].isHit(self.ship.firedBullets)) {
+          self.asteroids.splice(i, 1);
+        } else {
+          var a = self.asteroids[i];
+          a.update(self.maxX, self.maxY);
+        }
       }
 
       self.ship.update(self.maxX, self.maxY);
-
-      for (var j=0; j<self.ship.firedBullets.length; j++) {
-        var b = self.ship.firedBullets[j];
-        console.log(self, b);
-        b.update();
-      }
-    }
+    };
 
     self.getAsteroids = function() {
       for (var i=0; i<10; i++) {
-        var a = Asteroid.randomAsteroid(self.maxX, self.maxY, ctx)
+        var a = Asteroid.randomAsteroid(self.maxX, self.maxY, ctx);
         self.asteroids.push(a);
+      }
+    };
+
+    self.drawBackground = function() {
+      var bgimg = new Image();
+      bgimg.src = "space.jpg";
+
+      ctx.drawImage(bgimg, self.imgCoords.x, self.imgCoords.y);
+
+      if (self.imgCoords.x <= -500 || self.imgCoords.x <= -500) {
+        self.imgCoords.x = 0;
+        self.imgCoords.y = 0;
+      } else {
+        self.imgCoords.x -= 1;
+        self.imgCoords.y -= 1;
       }
     };
   }
@@ -262,12 +309,12 @@ var AG = (function() {
     Asteroid: Asteroid,
     Game: Game,
     Ship: Ship
-  }
+  };
 })();
 
 
 (function() {
-  var canvas = $("canvas")[0]
+  var canvas = $("canvas")[0];
   canvas.width = 900;
   canvas.height = 600;
   var ctx = canvas.getContext("2d");
